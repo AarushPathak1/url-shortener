@@ -1,9 +1,7 @@
 from fastapi import FastAPI
-import redis.asyncio as redis
+from app.cache.redis_client import redis_client
 
 app = FastAPI()
-
-redis_client = redis.Redis(host="redis", port=6379, decode_responses=True)
 
 @app.get("/health")
 async def health_check():
