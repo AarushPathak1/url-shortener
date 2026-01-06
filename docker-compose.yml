@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   api:
     image: python:3.11-slim
@@ -14,8 +12,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
 
   db:
     image: postgres:16-alpine
@@ -23,3 +19,9 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: url_shortener
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  postgres_data:
