@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from app.cache.redis_client import redis_client
 from app.db.postgres import get_connection
@@ -63,7 +63,17 @@ async def redirect_short_url(short_code: str):
 
 
 @app.post("/api/v1/urls", response_model=CreateURLResponse)
-async def create_short_url(payload: CreateURLRequest):
+async def create_short_url(payload: CreateURLRequest, request: Request):
+    client_ip = request.client.host
+    rate_key = f"rate:create:{client_ip}"
+
+    count = await redis_client.incr(rate_key)
+    if count == 1:
+        await redis_client.expire(rate_key, 60)
+
+    if count > 5:
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+
     conn = await get_connection()
     try:
         # 1) Insert row to get DB-generated id
