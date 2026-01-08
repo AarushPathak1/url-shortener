@@ -46,7 +46,7 @@ async def get_analytics(short_code: str):
     }
 
 
-@app.get("/{short_code}")
+@app.get("/r/{short_code}")
 async def redirect_short_url(short_code: str):
     key = f"url:{short_code}"
 
@@ -131,7 +131,7 @@ async def create_short_url(payload: CreateURLRequest, request: Request):
 
         return CreateURLResponse(
             short_code=short_code,
-            short_url=f"http://localhost:8000/{short_code}",
+            short_url=f"http://localhost:8000/r/{short_code}",
         )
     finally:
         await conn.close()
