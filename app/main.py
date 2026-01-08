@@ -37,6 +37,15 @@ async def db_check():
         await conn.close()
 
 
+@app.get("/api/v1/analytics/{short_code}")
+async def get_analytics(short_code: str):
+    clicks = await redis_client.get(f"clicks:{short_code}")
+    return {
+        "short_code": short_code,
+        "clicks": int(clicks) if clicks else 0
+    }
+
+
 @app.get("/{short_code}")
 async def redirect_short_url(short_code: str):
     key = f"url:{short_code}"
