@@ -49,7 +49,7 @@ async def redirect_short_url(short_code: str):
             "short_code": short_code,
             "cache": "hit"
         }))
-
+        await redis_client.incr(f"clicks:{short_code}")
         return RedirectResponse(url=long_url, status_code=302)
 
     # 2) Fallback to Postgres
@@ -66,11 +66,13 @@ async def redirect_short_url(short_code: str):
 
         # 3) Populate Redis (cache-aside)
         await redis_client.set(key, long_url, ex=60 * 60 * 24)  # 24h TTL
+        # log
         logger.info(json.dumps({
             "event": "redirect",
             "short_code": short_code,
             "cache": "miss"
         }))
+        await redis_client.incr(f"clicks:{short_code}")
         return RedirectResponse(url=long_url, status_code=302)
 
     finally:
