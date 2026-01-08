@@ -7,6 +7,7 @@ from app.utils.base62 import encode_base62
 from app.utils.rate_limit import rate_limit
 import logging
 import json
+import os
 
 app = FastAPI()
 logger = logging.getLogger("url_shortener")
@@ -24,7 +25,10 @@ class CreateURLResponse(BaseModel):
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "container": os.environ.get("HOSTNAME")
+    }
 
 
 @app.get("/db-check")
