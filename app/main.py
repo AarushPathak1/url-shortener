@@ -5,9 +5,12 @@ from app.db.postgres import get_connection
 from pydantic import BaseModel, HttpUrl
 from app.utils.base62 import encode_base62
 from app.utils.rate_limit import rate_limit
-
+import logging
+import json
 
 app = FastAPI()
+logger = logging.getLogger("url_shortener")
+logging.basicConfig(level=logging.INFO)
 
 
 class CreateURLRequest(BaseModel):
@@ -41,6 +44,12 @@ async def redirect_short_url(short_code: str):
     # 1) Try Redis first
     long_url = await redis_client.get(key)
     if long_url:
+        logger.info(json.dumps({
+            "event": "redirect",
+            "short_code": short_code,
+            "cache": "hit"
+        }))
+
         return RedirectResponse(url=long_url, status_code=302)
 
     # 2) Fallback to Postgres
@@ -57,8 +66,13 @@ async def redirect_short_url(short_code: str):
 
         # 3) Populate Redis (cache-aside)
         await redis_client.set(key, long_url, ex=60 * 60 * 24)  # 24h TTL
-
+        logger.info(json.dumps({
+            "event": "redirect",
+            "short_code": short_code,
+            "cache": "miss"
+        }))
         return RedirectResponse(url=long_url, status_code=302)
+
     finally:
         await conn.close()
 
@@ -97,6 +111,12 @@ async def create_short_url(payload: CreateURLRequest, request: Request):
             str(payload.long_url),
             ex=60 * 60 * 24,
         )
+
+        logger.info(json.dumps({
+            "event": "url_created",
+            "short_code": short_code,
+            "client_ip": request.client.host
+        }))
 
         return CreateURLResponse(
             short_code=short_code,
