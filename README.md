@@ -154,3 +154,99 @@ Redis INCR clicks:{short_code}
 
 ---
 
+## Observability
+
+- Structured JSON logging using Python logging
+- Logs include:
+  - URL creation events
+  - Redirect cache hits / misses
+- Designed to integrate easily with log aggregation systems
+
+```json
+{
+  "event": "redirect",
+  "short_code": "cb",
+  "cache": "hit"
+}
+```
+
+---
+
+## Database Schema
+
+```text
+urls
+--------------------------------
+id            BIGSERIAL PRIMARY KEY
+short_code    VARCHAR(16) UNIQUE
+long_url      TEXT NOT NULL
+created_at    TIMESTAMP DEFAULT NOW()
+expires_at    TIMESTAMP NULL
+```
+
+- PostgreSQL enforces uniqueness
+- Redis is treated as an optimization layer
+- Schema is auto-created via init SQL
+
+---
+
+## Running Locally
+
+### Start the system (with load balancing)
+```bash
+docker compose up --scale api=3
+```
+
+### Access the service
+```bash
+http://localhost:8000
+```
+Only Nginx is exposed to the host; API containers remain private.
+
+---
+
+### Verifying Load Balancing
+
+Health endpoint includes container identity:
+
+```bash
+for i in {1..10}; do
+  curl http://localhost:8000/health
+  echo
+done
+```
+You should see different container IDs, confirming round-robin distribution.
+
+---
+
+## Design Tradeoffs
+
+- Cache-aside chosen for reliability and simplicity
+- Redis counters preferred over DB writes for analytics
+- DB-generated IDs avoid race conditions
+- Stateless API enables safe horizontal scaling
+- Fail-open rate limiting favors availability
+
+---
+
+## Future Extensions
+
+- Background analytics processing (Redis Streams / workers)
+- Per-user authentication and rate limits
+- URL expiration enforcement
+- Prometheus metrics and dashboards
+- HTTPS and advanced Nginx config
+- Idempotent URL creation
+
+---
+
+## What This Project Demonstrates
+
+- Correct use of Redis as a shared infrastructure layer
+- Read vs write path optimization
+- Load balancer–safe system design
+- Production-style backend architecture
+- Clear, defensible engineering tradeoffs
+
+---
+
